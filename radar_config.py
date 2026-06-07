@@ -12,8 +12,10 @@ Lý thuyết cơ bản:
     với S = B / T_c là chirp slope (Hz/s).
 """
 
+import numpy as np
 from dataclasses import dataclass, field
 from antenna_array import AntennaArray
+from typing import Optional
 
 # ============================================================================
 # Hằng số vật lý
@@ -51,8 +53,8 @@ class RadarConfig:
     max_range: float = field(init=False)         # R_max [m]
     velocity_resolution: float = field(init=False)  # Δv [m/s]
     max_velocity: float = field(init=False)      # v_max [m/s]
-    # Cấu trúc mảng ăng-ten (Physical + Virtual)
-    from typing import Optional
+    angle_resolution: float = field(init=False)  # Δθ [deg]
+    max_angle: float = field(init=False)         # θ_max [deg]
     antenna_array: Optional[AntennaArray] = None
 
     def __post_init__(self):
@@ -99,6 +101,15 @@ class RadarConfig:
         #   Trong MIMO DDMA, phổ Doppler bị chia làm N_tx phần
         #   v_max = λ / (4 × T_c × N_tx)  [m/s]
         self.max_velocity = self.wavelength / (4 * self.t_chirp * self.n_tx)
+
+        # --- Angle ---
+        # Mảng ảo ULA với d = λ/2
+        d = self.wavelength / 2
+        # Max angle (Field of View) = ± arcsin(λ / (2d))
+        self.max_angle = np.degrees(np.arcsin(self.wavelength / (2 * d)))
+        # Angle resolution = λ / (N_virtual * d)
+        self.angle_resolution = np.degrees(
+            self.wavelength / (self.n_virtual * d))
 
     @property
     def n_tx(self) -> int:

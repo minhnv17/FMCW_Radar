@@ -107,8 +107,7 @@ def plot_results(
     # Detected Targets
     target_lines.extend(["\n", "DETECTED (CFAR + DBF)", "─" * 32])
     for i, dt in enumerate(detected_targets):
-        target_lines.append(
-            f"D{i+1}: R={dt.range_m:.1f}m v={dt.velocity:+.1f}m/s Az={dt.azimuth_deg:+.1f}°")
+        target_lines.append(f"D{i+1}: [r={dt.r_idx}, d={dt.d_idx}] R={dt.range_m:.1f}m v={dt.velocity:+.1f}m/s Az={dt.azimuth_deg:+.1f}°")
 
     full_text = specs_text + "\n".join(target_lines)
     ax3.text(
@@ -121,30 +120,16 @@ def plot_results(
     # Panel 4: Range-Doppler Map (2D heatmap)
     # ────────────────────────────────────────────────────────────
     ax4 = fig.add_subplot(gs[1, 0], **axes_style)
-    ax4.set_title("Range-Doppler Map (CFAR Detections highlighted)",
-                  color=title_color, fontsize=12)
+    ax4.set_title("Range-Doppler Map", color=title_color, fontsize=12)
 
     extent = (range_bins[0], range_bins[-1], doppler_bins[0], doppler_bins[-1])
     im = ax4.imshow(
-        rdm_db.T, aspect="auto", extent=extent, origin="lower",
+        rdm_db, aspect="auto", extent=extent, origin="lower",
         cmap="viridis", vmin=-dynamic_range_db, vmax=0, interpolation="bilinear",
     )
     ax4.set_xlabel("Range Bin", color=label_color, fontsize=10)
     ax4.set_ylabel("Doppler Bin", color=label_color, fontsize=10)
     ax4.tick_params(colors=tick_color, labelsize=8)
-
-    # Đánh dấu các đỉnh CFAR lên RDM (nhóm theo cell để không đè text)
-    from collections import defaultdict
-    rdm_points = defaultdict(list)
-    for dt in detected_targets:
-        rdm_points[(dt.r_idx, dt.d_idx)].append(dt.azimuth_deg)
-
-    for (r, d), az_list in rdm_points.items():
-        ax4.scatter(r, d, s=100, facecolors='none',
-                    edgecolors='white', linewidths=2)
-        az_text = ", ".join([f"{a:.1f}°" for a in az_list])
-        ax4.text(r + 2, d + 2, f"Az: {az_text}",
-                 color='white', fontsize=8, fontweight='bold')
 
     cbar = fig.colorbar(im, ax=ax4, fraction=0.046, pad=0.04)
     cbar.set_label("Magnitude [dB]", color=label_color, fontsize=9)

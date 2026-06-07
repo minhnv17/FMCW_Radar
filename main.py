@@ -13,7 +13,7 @@ Cách chạy:
 """
 
 from radar_config import RadarConfig
-from signal_generator import Target, gen_sig
+from signal_generator import Target, gen_ddma_signal
 from radar_types import DetectedTarget, RadarPoint, RadarPointCloud
 from signal_processor import (
     compute_range_doppler_map,
@@ -56,11 +56,9 @@ def main():
     #   velocity > 0 → mục tiêu đang ra xa
     #   velocity < 0 → mục tiêu đang tiến lại gần
     targets = [
-        Target(range_m=400,  velocity=9.3,   rcs=1,
-               azimuth_deg=30),
-        Target(range_m=402,  velocity=9.0, rcs=0.1, azimuth_deg=50),
-        # Target(range_m=50,  velocity=0.0,  rcs=15),   # Xe cùng chiều, ra xa
-        # Target(range_m=350,  velocity=0.0,  rcs=15),   # Xe cùng chiều, ra xa
+        Target(range_m=400,  velocity=9.3,   rcs=0.1, azimuth_deg=30),
+        Target(range_m=150,  velocity=7.0,  rcs=2, azimuth_deg=85),
+        Target(range_m=600,  velocity=-8.0,  rcs=1.5, azimuth_deg=-70),
     ]
 
     print(f"\nNumber of targets: {len(targets)}")
@@ -72,7 +70,7 @@ def main():
     # 3. Tạo beat signal
     # ================================================================
     print("\n>> Generating beat signal with high noise (SNR = -5 dB)...")
-    beat_signal = gen_sig(config, targets, snr_db=-10)
+    beat_signal = gen_ddma_signal(config, targets, snr_db=-10)
     print(f"  Beat signal shape: {beat_signal.shape} "
           f"(channel x chirps x samples)")
 
@@ -115,9 +113,9 @@ def main():
             virtual_array=v_arr,
             virtual_pos=v_pos,
             wavelength=config.wavelength,
-            angle_start=-60.0,
-            angle_end=60.0,
-            n_angles=121
+            angle_start=-config.max_angle,
+            angle_end=config.max_angle,
+            n_angles=181
         )
 
         # Theo yêu cầu: Peak chỉ được xác định bởi CFAR. DBF chỉ dùng để ước lượng 1 góc lớn nhất.
@@ -125,7 +123,7 @@ def main():
         azimuth = float(angles[max_angle_idx])
 
         # Power thực của mục tiêu lấy từ Range-Doppler Map (không lấy từ góc vì phổ góc đã bị chuẩn hoá về 0)
-        peak_power = float(rdm_db[r_idx, d_idx])
+        peak_power = float(rdm_db[d_idx, r_idx])
 
         # Convert indices to physical units
         r_val = float(r_idx * config.range_resolution)
@@ -150,7 +148,7 @@ def main():
 
         detected_targets.append(dt)
         print(
-            f"    - Range: {r_val:.1f} m, Velocity: {v_val:+.1f} m/s, Azimuth: {azimuth:+.1f}°")
+            f"    - [r={r_idx}, d={d_idx}] Range: {r_val:.1f} m, Velocity: {v_val:+.1f} m/s, Azimuth: {azimuth:+.1f}°")
 
     # Tạo Point Cloud
     point_cloud = RadarPointCloud(frame_id=1)

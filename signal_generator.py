@@ -148,7 +148,7 @@ def generate_beat_signal(
     return beat_signal
 
 
-def gen_sig(config: RadarConfig, targets: list[Target], snr_db: float = 20.0) -> np.ndarray:
+def gen_ddma_signal(config: RadarConfig, targets: list[Target], snr_db: float = 20.0) -> np.ndarray:
     """
     Tạo ma trận beat signal cho hệ thống MIMO sử dụng kỹ thuật DDMA
     (Doppler Division Multiple Access).
